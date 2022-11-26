@@ -1,5 +1,5 @@
 ## Progressive Limb-Aware Virtual Try-On, ACM MM'22.
-Official code for ACM MM 2022 paper '## Progressive Limb-Aware Virtual Try-On'
+Official code for ACM MM 2022 paper 'Progressive Limb-Aware Virtual Try-On'
 <!-- [[Checkpoints for test]](The checkpoints are coming soon...)  -->
 [[Paper]](https://dl.acm.org/doi/10.1145/3503161.3547999)
 
@@ -8,11 +8,13 @@ Official code for ACM MM 2022 paper '## Progressive Limb-Aware Virtual Try-On'
 
 ## Environment
 python 3.7
+
 torch 1.9.0+cu111
+
 torchvision 0.10.0+cu111
 
 ## Dataset
-**VITON Dataset** For the dataset, please refer to [VITON](https://github.com/xthan/VITON).
+For the dataset, please refer to [VITON](https://github.com/xthan/VITON).
 
 <!-- ## Inference
 ```bash
