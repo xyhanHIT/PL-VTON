@@ -1,7 +1,10 @@
 ## Progressive Limb-Aware Virtual Try-On, ACM MM'22.
 Official code for ACM MM 2022 paper '## Progressive Limb-Aware Virtual Try-On'
-[[Checkpoints for test]](The checkpoints are coming soon...) 
+<!-- [[Checkpoints for test]](The checkpoints are coming soon...)  -->
 [[Paper]](https://dl.acm.org/doi/10.1145/3503161.3547999)
+
+## Pipeline
+![image](https://github.com/xyhanHIT/PL-VTON/blob/master/images/pipeline.png)
 
 ## Environment
 python 3.7
@@ -11,11 +14,11 @@ torchvision 0.10.0+cu111
 ## Dataset
 **VITON Dataset** For the dataset, please refer to [VITON](https://github.com/xthan/VITON).
 
-## Inference
+<!-- ## Inference
 ```bash
 python test.py
 ```
-**Note that** the results of our pretrained model are only guaranteed in VITON dataset only.
+**Note that** the results of our pretrained model are only guaranteed in VITON dataset only. -->
 
 ## Sample Try-on Results
   
@@ -41,6 +44,9 @@ If our code is helpful to your work, please cite:
   pages={7543--7552},
   year={2018}
 }
+```
+If you use the offered baseline results in your research, please cite with:
+```
 @inproceedings{wang2018toward,
   title={Toward Characteristic-Preserving Image-Based Virtual Try-On Network},
   author={Wang, Bochao and Zheng, Huabin and Liang, Xiaodan and Chen, Yimin and Lin, Liang and Yang, Meng},
