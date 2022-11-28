@@ -1,7 +1,11 @@
 ## Progressive Limb-Aware Virtual Try-On, ACM MM'22.
 Official code for ACM MM 2022 paper 'Progressive Limb-Aware Virtual Try-On'
-<!-- [[Checkpoints for test]](The checkpoints are coming soon...)  -->
+
+we propose a novel progressive limb-aware virtual try-on framework named PL-VTON. PL-VTON consists of Multi-attribute Clothing Warping (MCW), Human Parsing Estimator (HPE), and Limb-aware Texture Fusion (LTF), which produces stable clothing deformation and handles the texture retention well in the final try-on result.
+
 [[Paper]](https://dl.acm.org/doi/10.1145/3503161.3547999)
+
+[[Checkpoints]](https://drive.google.com/file/d/1thkz_4uygbXbwqzj2IvQQovSNImSnveu/view?usp=share_link)
 
 ## Pipeline
 ![image](https://github.com/xyhanHIT/PL-VTON/blob/master/images/pipeline.png)
@@ -16,11 +20,16 @@ torchvision 0.10.0+cu111
 ## Dataset
 For the dataset, please refer to [VITON](https://github.com/xthan/VITON).
 
-<!-- ## Inference
+## Inference
+1. Download the checkpoints from [here](https://drive.google.com/file/d/1thkz_4uygbXbwqzj2IvQQovSNImSnveu/view?usp=share_link).
+
+2. Get [VITON dataset](https://github.com/xthan/VITON).
+
+3. Run the "test.py".
 ```bash
 python test.py
 ```
-**Note that** the results of our pretrained model are only guaranteed in VITON dataset only. -->
+**Note that** the results of our pretrained model are only guaranteed in VITON dataset only.
 
 ## Sample Try-on Results
   
@@ -30,7 +39,7 @@ python test.py
 The use of this code is restricted to non-commercial research and educational purposes.
 
 ## Citation
-If our code is helpful to your work, please cite:
+If you use our code or models, please cite:
 ```
 @inproceedings{han2022progressive,
   title={Progressive Limb-Aware Virtual Try-On},
