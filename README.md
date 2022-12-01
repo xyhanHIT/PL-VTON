@@ -29,7 +29,7 @@ For the dataset, please refer to [VITON](https://github.com/xthan/VITON).
 ```bash
 python test.py
 ```
-**Note that** the results of our pretrained model are only guaranteed in VITON dataset only.
+**Note that** the results of our pretrained model are guaranteed in VITON dataset only.
 
 ## Sample Try-on Results
   
@@ -39,7 +39,7 @@ python test.py
 The use of this code is restricted to non-commercial research and educational purposes.
 
 ## Citation
-If you use our code or models, please cite:
+If you use our code or models, please cite with:
 ```
 @inproceedings{han2022progressive,
   title={Progressive Limb-Aware Virtual Try-On},
