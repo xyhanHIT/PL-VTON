@@ -1,4 +1,3 @@
-from ctypes import resize
 import torch
 import torch.nn as nn
 import torchvision
@@ -7,7 +6,6 @@ import torch.nn.functional as F
 import numpy as np
 import argparse
 from torch.autograd import Variable
-
 
 class SE_Block(nn.Module):
     def __init__(self, ch_in, reduction=16):
@@ -26,7 +24,6 @@ class SE_Block(nn.Module):
         y = self.fc(y).view(b, c, 1, 1)
         return x * y.expand_as(x)
 
-
 class Decoder(nn.Module):
     def __init__(self, in_channels, middle_channels, out_channels):
         super(Decoder, self).__init__()
@@ -42,67 +39,6 @@ class Decoder(nn.Module):
         x1 = torch.cat((x1, x2), dim=1)
         x1 = self.conv_relu(x1)
         return x1
-
-
-class STN(nn.Module):
-    def __init__(self, input_channels=28):
-        super(STN, self).__init__()
-        self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
-        self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
-        self.conv2_drop = nn.Dropout2d()
-        self.fc1 = nn.Linear(20*61*45, 50)
-        self.fc2 = nn.Linear(50, 6)
-
-        # Spatial transformer localization-network
-        self.localization = nn.Sequential(
-            nn.Conv2d(input_channels, 8, kernel_size=7),
-            nn.MaxPool2d(2, stride=2),
-            nn.ReLU(True),
-            nn.Conv2d(8, 10, kernel_size=5),
-            nn.MaxPool2d(2, stride=2),
-            nn.ReLU(True)
-        )
-
-        # Regressor for the 1 * 2 affine matrix
-        self.fc_loc = nn.Sequential(
-            nn.Linear(10 * 60 * 44, 32),
-            nn.ReLU(True),
-            nn.Linear(32, 1 * 2)
-        )
-        self.fc_loc2 = nn.Sequential(
-            nn.Linear(10 * 60 * 44, 32),
-            nn.ReLU(True),
-            nn.Linear(32, 1 * 2)
-        )
-
-        self.sigmoid = nn.Sigmoid()
-        self.tanh = nn.Tanh()
-
-    # Spatial transformer network forward function
-    def stn(self, x):
-        xs = self.localization(x)
-        xs = xs.view(-1, 10 * 60 * 44)
-        theta1 = self.fc_loc(xs)
-        theta2 = self.fc_loc2(xs)
-        theta1 = theta1.view(-1, 2, 1)
-        theta2 = theta2.view(-1, 2, 1)
-        return theta1, theta2
-
-    def forward(self, cloth, pose_map18, parse7_occ):
-        x = torch.cat((cloth, pose_map18, parse7_occ),
-                      axis=1)    # [b, 3+18+7(28), 256, 192]
-        theta1, theta2 = self.stn(x)
-        theta1 = self.sigmoid(theta1) + 1
-        theta2 = self.tanh(theta2)
-        theta11 = theta1[:, 0, :].unsqueeze(1)
-        theta22 = theta1[:, 1, :].unsqueeze(1)
-        theta_zero = torch.zeros_like(theta11)
-        theta_up = torch.cat((theta11, theta_zero), axis=2)
-        theta_down = torch.cat((theta_zero, theta22), axis=2)
-        theta1 = torch.cat((theta_up, theta_down), axis=1)
-        theta = torch.cat((theta1, theta2), axis=2)
-        return theta
-
 
 class ConvGRUCell(nn.Module):
     def __init__(self, input_size, input_dim, hidden_dim, kernel_size, bias, dtype):
@@ -166,7 +102,6 @@ class ConvGRUCell(nn.Module):
 
         h_next = (1 - update_gate) * h_cur + update_gate * cnm
         return h_next
-
 
 class ConvGRU(nn.Module):
     def __init__(self, input_size, input_dim, hidden_dim, kernel_size, num_layers,
@@ -286,39 +221,31 @@ class ConvGRU(nn.Module):
             param = [param] * num_layers
         return param
 
-
 class MCW(nn.Module):
     def __init__(self, input_A_channels=31):
         super(MCW, self).__init__()
-        # get a flow #
         self.base_model = torchvision.models.resnet34(True)
         self.base_layers = list(self.base_model.children())
         self.encode1 = nn.Sequential(
-            nn.Conv2d(input_A_channels, 64, kernel_size=(7, 7),
-                      stride=(2, 2), padding=(3, 3), bias=False),
+            nn.Conv2d(input_A_channels, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False),
             self.base_layers[1],
             self.base_layers[2],
         )   # [b, 64, 128, 96]
-        self.encode2 = nn.Sequential(*self.base_layers[3:5])  # [b, 64, 64, 48]
+        self.encode2 = nn.Sequential(*self.base_layers[3:5]) # [b, 64, 64, 48]
         self.encode3 = self.base_layers[5]   # [b, 128, 32, 24]
         self.encode4 = self.base_layers[6]   # [b, 256, 16, 12]
         self.encode5 = self.base_layers[7]   # [b, 512, 8, 6]
 
-        self.decode5 = Decoder(
-            in_channels=512, middle_channels=256+256, out_channels=256)
-        self.decode4 = Decoder(
-            in_channels=256, middle_channels=128+128, out_channels=128)
-        self.decode3 = Decoder(
-            in_channels=128, middle_channels=64+64, out_channels=64)
-        self.decode2 = Decoder(
-            in_channels=64, middle_channels=64+64, out_channels=64)
+        self.decode5 = Decoder(in_channels=512, middle_channels=256+256, out_channels=256)
+        self.decode4 = Decoder(in_channels=256, middle_channels=128+128, out_channels=128)
+        self.decode3 = Decoder(in_channels=128, middle_channels=64+64, out_channels=64)
+        self.decode2 = Decoder(in_channels=64, middle_channels=64+64, out_channels=64)
         self.decode1 = nn.Sequential(
             nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True),
             nn.Conv2d(64, 32, kernel_size=3, padding=1, bias=False),
             nn.Conv2d(32, 64, kernel_size=3, padding=1, bias=False)
-        )
-        self.conv_last = nn.Conv2d(
-            in_channels=64, out_channels=2, kernel_size=1)
+            )
+        self.conv_last = nn.Conv2d(in_channels=64, out_channels=2, kernel_size=1)
 
         # flow op
         self.conv_flow1 = nn.Conv2d(256, 2, 1, 1)
@@ -329,80 +256,61 @@ class MCW(nn.Module):
         self.conv_gru = ConvGRU(input_size=(256, 192),
                                 input_dim=2,
                                 hidden_dim=[32, 64, 2],
-                                kernel_size=(3, 3),
+                                kernel_size=(3,3),
                                 num_layers=3,
                                 dtype=torch.cuda.FloatTensor,
                                 batch_first=True,
-                                bias=True,
-                                return_all_layers=False)
+                                bias = True,
+                                return_all_layers = False)
         self.tanh = nn.Tanh()
-
-        self.se0 = SE_Block(ch_in=input_A_channels)
-        self.se1 = SE_Block(ch_in=64)
-        self.se2 = SE_Block(ch_in=64)
-        self.se3 = SE_Block(ch_in=128)
-        self.se4 = SE_Block(ch_in=256)
-        self.se5 = SE_Block(ch_in=512)
-
+      
     def forward(self, pre_cloth, pose_map18, parse7_occ, image_occ):
-        # [b, 3+18+7+3 (31), 256, 192]
-        input = torch.cat(
-            (pre_cloth, pose_map18, parse7_occ, image_occ), axis=1)
-        # get a flow
-        input = self.se0(input)
+        input = torch.cat((pre_cloth, pose_map18, parse7_occ, image_occ), axis=1)    # [b, 3+18+7+3 (31), 256, 192]
         e1 = self.encode1(input)     # [b,64,128,96]
-        e1 = self.se1(e1)
         e2 = self.encode2(e1)        # [b,64,64,48]
-        e2 = self.se2(e2)
         e3 = self.encode3(e2)        # [b,128,32,24]
-        e3 = self.se3(e3)
         e4 = self.encode4(e3)        # [b,256,16,12]
-        e4 = self.se4(e4)
         f = self.encode5(e4)         # [b,512,8,6]
-        f = self.se5(f)
-
+      
         d4 = self.decode5(f, e4)     # [b,256,16,12]  --->  flow1
         d3 = self.decode4(d4, e3)    # [b,128,32,24]  --->  flow2
         d2 = self.decode3(d3, e2)    # [b,64,64,48]   --->  flow3
         d1 = self.decode2(d2, e1)    # [b,64,128,96]  --->  flow4
-        d0 = self.decode1(d1)        # [b,64,256,192]
+        d0 = self.decode1(d1)        # [b,64,256,192] 
         flow = self.conv_last(d0)    # [b,2,256,192]  --->  flow5
 
-        flow1 = torch.nn.functional.interpolate(
-            d4, scale_factor=16, mode='bilinear', align_corners=True)   # [b,256,256,192]
+        flow1 = torch.nn.functional.interpolate(d4, scale_factor=16, mode='bilinear', align_corners=True)   # [b,256,256,192]
         flow1 = self.conv_flow1(flow1)  # [b,2,256,192]
 
-        flow2 = torch.nn.functional.interpolate(
-            d3, scale_factor=8, mode='bilinear', align_corners=True)   # [b,128,256,192]
-        flow2 = self.conv_flow2(flow2)  # [b,2,256,192]
+        flow2 = torch.nn.functional.interpolate(d3, scale_factor=8, mode='bilinear', align_corners=True)
+        flow2 = self.conv_flow2(flow2)
 
-        flow3 = torch.nn.functional.interpolate(
-            d2, scale_factor=4, mode='bilinear', align_corners=True)   # [b,64,256,192]
-        flow3 = self.conv_flow3(flow3)  # [b,2,256,192]
+        flow3 = torch.nn.functional.interpolate(d2, scale_factor=4, mode='bilinear', align_corners=True)
+        flow3 = self.conv_flow3(flow3)
 
-        flow4 = torch.nn.functional.interpolate(
-            d1, scale_factor=2, mode='bilinear', align_corners=True)   # [b,64,256,192]
-        flow4 = self.conv_flow4(flow4)  # [b,2,256,192]
+        flow4 = torch.nn.functional.interpolate(d1, scale_factor=2, mode='bilinear', align_corners=True)
+        flow4 = self.conv_flow4(flow4)
 
         flow5 = flow
 
-        flow_all = torch.cat((flow1.unsqueeze(1), flow2.unsqueeze(1), flow3.unsqueeze(1), flow4.unsqueeze(1), flow5.unsqueeze(1)), axis=1)  # [b, 5, 2, 256, 192]
+        flow_all = torch.cat((flow1.unsqueeze(1), flow2.unsqueeze(1), flow3.unsqueeze(1), flow4.unsqueeze(1), flow5.unsqueeze(1)), axis=1)
         layer_output_list, last_state_list = self.conv_gru(flow_all)
 
-        gru_flow = last_state_list[0][0]            # [b,2,256,192]
-        flow_all = flow_all.permute(0, 1, 3, 4, 2)      # [b,5,256,192,2]
-        gru_flow = gru_flow.permute(0, 2, 3, 1)        # [b,256,192,2]
+        gru_flow = last_state_list[0][0]
+        flow_all = flow_all.permute(0,1,3,4,2)
+        gru_flow = gru_flow.permute(0,2,3,1)
         gru_flow = self.tanh(gru_flow)
 
-        gridY = torch.linspace(-1, 1, steps=256).view(1, -1, 1, 1).expand(1, 256, 192, 1)
-        gridX = torch.linspace(-1, 1, steps=192).view(1, 1, -1, 1).expand(1, 256, 192, 1)
+        gridY = torch.linspace(-1, 1, steps = 256).view(1, -1, 1, 1).expand(1, 256, 192, 1)
+        gridX = torch.linspace(-1, 1, steps = 192).view(1, 1, -1, 1).expand(1, 256, 192, 1)
         grid = torch.cat((gridX, gridY), dim=3).type(gru_flow.type())
 
         grid = torch.repeat_interleave(grid, repeats=gru_flow.shape[0], dim=0)
         gru_flow = torch.clamp(gru_flow + grid, min=-1, max=1)
 
-        return gru_flow
+        warp_cloth = F.grid_sample(pre_cloth, gru_flow, mode='bilinear', padding_mode='border')
 
+        return warp_cloth
 
 class HPE(nn.Module):
     def __init__(self, input_channels=31):
@@ -410,31 +318,25 @@ class HPE(nn.Module):
         self.base_model = torchvision.models.resnet34(True)
         self.base_layers = list(self.base_model.children())
         self.encode1 = nn.Sequential(
-            nn.Conv2d(input_channels, 64, kernel_size=(7, 7),
-                      stride=(2, 2), padding=(3, 3), bias=False),
+            nn.Conv2d(input_channels, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False),
             self.base_layers[1],
             self.base_layers[2],
-        ) 
-        self.encode2 = nn.Sequential(*self.base_layers[3:5])
-        self.encode3 = self.base_layers[5]
-        self.encode4 = self.base_layers[6]
-        self.encode5 = self.base_layers[7]              
+        )   # [b, 64, 128, 96]
+        self.encode2 = nn.Sequential(*self.base_layers[3:5])  # [b, 64, 64, 48]
+        self.encode3 = self.base_layers[5]                    # [b, 128, 32, 24]
+        self.encode4 = self.base_layers[6]                    # [b, 256, 16, 12]
+        self.encode5 = self.base_layers[7]                    # [b, 512, 8, 6]
 
-        self.decode5 = Decoder(
-            in_channels=512, middle_channels=256+256, out_channels=256)
-        self.decode4 = Decoder(
-            in_channels=256, middle_channels=128+128, out_channels=128)
-        self.decode3 = Decoder(
-            in_channels=128, middle_channels=64+64, out_channels=64)
-        self.decode2 = Decoder(
-            in_channels=64, middle_channels=64+64, out_channels=64)
+        self.decode5 = Decoder(in_channels=512, middle_channels=256+256, out_channels=256)
+        self.decode4 = Decoder(in_channels=256, middle_channels=128+128, out_channels=128)
+        self.decode3 = Decoder(in_channels=128, middle_channels=64+64, out_channels=64)
+        self.decode2 = Decoder(in_channels=64, middle_channels=64+64, out_channels=64)
         self.decode1 = nn.Sequential(
             nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True),
             nn.Conv2d(64, 32, kernel_size=3, padding=1, bias=False),
             nn.Conv2d(32, 64, kernel_size=3, padding=1, bias=False)
-        )
-        self.conv_last = nn.Conv2d(
-            in_channels=64, out_channels=7, kernel_size=1)
+            )
+        self.conv_last = nn.Conv2d(in_channels=64, out_channels=7, kernel_size=1)
         self.sigmoid = nn.Sigmoid()
 
         self.se0 = SE_Block(ch_in=input_channels)
@@ -445,29 +347,27 @@ class HPE(nn.Module):
         self.se5 = SE_Block(ch_in=512)
 
     def forward(self, warp_cloth, pose_map18, parse7_occ, image_occ):
-        input = torch.cat(
-            (warp_cloth, pose_map18, parse7_occ, image_occ), axis=1)
+        input = torch.cat((warp_cloth, pose_map18, parse7_occ, image_occ), axis=1)
         input = self.se0(input)
-        e1 = self.encode1(input)    
+        e1 = self.encode1(input)
         e1 = self.se1(e1)
-        e2 = self.encode2(e1)        
+        e2 = self.encode2(e1)
         e2 = self.se2(e2)
-        e3 = self.encode3(e2)   
+        e3 = self.encode3(e2)
         e3 = self.se3(e3)
-        e4 = self.encode4(e3)       
+        e4 = self.encode4(e3)
         e4 = self.se4(e4)
-        f = self.encode5(e4)       
+        f = self.encode5(e4)
         f = self.se5(f)
 
-        d4 = self.decode5(f, e4)     
-        d3 = self.decode4(d4, e3)  
-        d2 = self.decode3(d3, e2)    
-        d1 = self.decode2(d2, e1)  
-        d0 = self.decode1(d1)
-        parse = self.conv_last(d0)    
-        parse = self.sigmoid(parse)  
+        d4 = self.decode5(f, e4)
+        d3 = self.decode4(d4, e3)
+        d2 = self.decode3(d3, e2)
+        d1 = self.decode2(d2, e1) 
+        d0 = self.decode1(d1)       
+        parse = self.conv_last(d0)
+        parse = self.sigmoid(parse)
         return parse
-
 
 class TryOnCoarse(nn.Module):
     def __init__(self, input_channels=47):
@@ -518,7 +418,6 @@ class TryOnCoarse(nn.Module):
         try_on = self.conv_last(d0)  
         try_on = self.sigmoid(try_on)
         return try_on
-
 
 class TryOnFine(nn.Module):
     def __init__(self, input_channels=28, limb_channels=192):
@@ -588,7 +487,6 @@ class TryOnFine(nn.Module):
         try_on_fine = self.sigmoid(try_on_fine)
         return try_on_fine
 
-
 class LTF(nn.Module):
     def __init__(self, istrain=True):
         super(LTF, self).__init__()
@@ -603,16 +501,11 @@ class LTF(nn.Module):
             limb, try_on_coarse, pose_map18, parse7_t)
         return try_on_fine
 
-
 class PLVTON(nn.Module):
     def __init__(self, opt):
         super(PLVTON, self).__init__()
 
-        self.stn = torch.nn.DataParallel(STN())
-        self.stn.load_state_dict(torch.load(
-            os.path.join(opt.model_path, "STN.pth")))
-
-        self.mcw = torch.nn.DataParallel(MCW())
+        self.mcw = MCW()
         self.mcw.load_state_dict(torch.load(
             os.path.join(opt.model_path, "MCW.pth")))
 
@@ -620,38 +513,19 @@ class PLVTON(nn.Module):
         self.hpe.load_state_dict(torch.load(
             os.path.join(opt.model_path, "HPE.pth")))
 
-        self.ltf = torch.nn.DataParallel(LTF())
+        self.ltf = LTF()
         self.ltf.load_state_dict(torch.load(
             os.path.join(opt.model_path, "LTF.pth")))
 
     def forward(self, cloth, pose_map18, parse7_occ, img_occ, limb):
-
-        theta = self.stn(cloth, pose_map18, parse7_occ)
-        grid_c = F.affine_grid(theta, cloth.size())
-        pre_cloth = F.grid_sample(cloth, grid_c, padding_mode='border')
-
-        flow = self.mcw(pre_cloth, pose_map18, parse7_occ, img_occ)
-        warp_cloth = F.grid_sample(
-            pre_cloth, flow, mode='bilinear', padding_mode='border')
-
+        warp_cloth = self.mcw(cloth, pose_map18, parse7_occ, img_occ)
         parse7_t = self.hpe(warp_cloth, pose_map18, parse7_occ, img_occ)
-
         try_on = self.ltf(limb, warp_cloth, pose_map18, parse7_t, img_occ)
-
         return try_on
-
 
 def get_opt():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--name", default="test")
     parser.add_argument("--model_path", default="./checkpoints/")
-    parser.add_argument('-j', '--workers', type=int, default=1)
-    parser.add_argument('-b', '--batch-size', type=int, default=16)
-    parser.add_argument("--dataroot", default="./data/")
-    parser.add_argument("--fine_width", type=int, default=192)
-    parser.add_argument("--fine_height", type=int, default=256)
-    parser.add_argument("--radius", type=int, default=3)
-    parser.add_argument("--grid_size", type=int, default=5)
     opt = parser.parse_args()
 
     return opt

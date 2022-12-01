@@ -6,7 +6,9 @@ from PIL import ImageDraw
 import os.path as osp
 import numpy as np
 import json
+import cv2
 import argparse
+from skimage import transform
 
 def ParseOneHot(x, num_class=None):
     h, w = x.shape
@@ -53,13 +55,75 @@ def mask_parse(parse):
     res = parse * mask
     color = (1-mask) * 3
     res = res + color
-    return mask, res
+    return vertical_high- vertical_low, mask, res
 
 def mask_image(mask, image):
     mask = np.expand_dims(mask, 2)
     mask = np.repeat(mask, 3, 2)
     res = image * mask
     return res
+
+def get_center(parse):
+    parse_cloth = np.where(parse==3)
+    parse_vertical_high = max(parse_cloth[0])
+    parse_vertical_low = min(parse_cloth[0])
+    parse_level_high = max(parse_cloth[1])
+    parse_level_low = min(parse_cloth[1])
+    parse_x = (parse_level_high + parse_level_low) / 2
+    parse_y = (parse_vertical_high + parse_vertical_low) / 2
+    return parse_x, parse_y
+
+def get_pre_cloth(cloth, cloth_mask, parse, parse_cloth_high):
+    cloth_region = np.where(cloth_mask==1)
+    try:
+        cloth_high = max(cloth_region[0]) - min(cloth_region[0])
+        for i in [1.3,1.2,1.1]:
+            if parse_cloth_high * i < 256:
+                break
+        scale = parse_cloth_high * i / cloth_high
+        if scale > 1:
+            scale = 1
+    except:
+        scale = 1
+
+    res = transform.rescale(cloth, scale=scale, anti_aliasing=True, multichannel=True, preserve_range=True)
+    res = cv2.copyMakeBorder(res, (cloth.shape[0]-res.shape[0])//2, (cloth.shape[0]-res.shape[0])//2, 
+                                (cloth.shape[1]-res.shape[1])//2, (cloth.shape[1]-res.shape[1])//2, 
+                                cv2.BORDER_CONSTANT, value=(255, 255, 255))
+    res = cv2.resize(res, (parse.shape[1], parse.shape[0]), interpolation=cv2.INTER_AREA) 
+    res_mask = transform.rescale(cloth_mask, scale=scale, preserve_range=True)
+    res_mask = cv2.copyMakeBorder(res_mask, (cloth.shape[0]-res_mask.shape[0])//2, (cloth.shape[0]-res_mask.shape[0])//2, 
+                                (cloth.shape[1]-res_mask.shape[1])//2, (cloth.shape[1]-res_mask.shape[1])//2, 
+                                cv2.BORDER_CONSTANT, value=0)
+    res_mask = cv2.resize(res_mask, (parse.shape[1], parse.shape[0]), interpolation=cv2.INTER_AREA).astype(np.uint8)
+
+    parse_x, parse_y = get_center(parse)
+    cloth_x = cloth.shape[1]/2
+    cloth_y = cloth.shape[0]/2
+
+    x = parse_x - cloth_x 
+    y = parse_y - cloth_y
+    cloth_xy = np.where(res_mask==np.max(res_mask))
+
+    cloth_top = min(cloth_xy[0])
+    cloth_bottom = max(cloth_xy[0])
+    cloth_left = min(cloth_xy[1])
+    cloth_right = max(cloth_xy[1])
+    if x < 0:
+        x = -(min(-x, cloth_left))
+    else:
+        x = min(x, cloth_right)
+    if y < 0:
+        y = -min(-y, cloth_top)
+    else:
+        y = min(y, cloth_bottom)
+
+    M = np.float32([[1,0,x],[0,1,y]])
+    res = cv2.warpAffine(res, M, (cloth.shape[1],cloth.shape[0]), borderValue=[255,255,255])
+    res_mask = cv2.warpAffine(res_mask, M, (cloth.shape[1],cloth.shape[0]), borderValue=[0])
+    res = res.astype('uint8')/255
+    res_mask = res_mask.astype('uint8')/255
+    return res.astype(np.float32), res_mask.astype(np.float32)
 
 def ParseFine(parse):
     parse_background = (parse==0)
@@ -128,7 +192,6 @@ def get_pose_map18(im_name, data_path, fine_height, fine_width, radius, transfor
 class Dataset(data.Dataset):
     def __init__(self, opt):
         super(Dataset, self).__init__()
-        
         self.fine_height = opt.fine_height
         self.fine_width = opt.fine_width
         self.radius = opt.radius
@@ -156,6 +219,9 @@ class Dataset(data.Dataset):
         # cloth
         cloth_array = np.array(Image.open(osp.join(self.data_path, 'cloth', c_name))).astype('uint8')
         cloth = torch.from_numpy(cloth_array.astype(np.float32).transpose(2,0,1)/255)
+        # cloth_mask
+        mloth_array = np.array(Image.open(osp.join(self.data_path, 'cloth-mask', c_name))).astype(np.float32)
+        mloth = torch.from_numpy(mloth_array).unsqueeze(0)/255
         # parse1_s
         parse1_s = np.array(Image.open(osp.join(self.data_path, 'image-parse', im_name.replace('.jpg', '.png')))).astype('uint8')
         parse1_s = ParseFine(parse1_s) # [0-19] -> [0-6]
@@ -164,8 +230,12 @@ class Dataset(data.Dataset):
         image = torch.from_numpy(img_array.transpose(2,0,1)/255)
         
         # parse1_occ
-        mask, parse1_occ = mask_parse(parse1_s)
+        img_cloth_high, mask, parse1_occ = mask_parse(parse1_s)
         parse1_occ = parse1_occ.astype('uint8')
+
+        # pre_cloth
+        pre_cloth, pre_mloth = get_pre_cloth(cloth_array, mloth_array, parse1_s, img_cloth_high)
+        pre_cloth = torch.from_numpy(pre_cloth.transpose(2,0,1))
         
         # parse7_occ
         parse7_s = ParseOneHot(parse1_s, num_class=7)
@@ -204,12 +274,11 @@ class Dataset(data.Dataset):
 
         result = {
             'im_name':              im_name,                # list
-            'cloth':                cloth,                  # [b, 3, 256, 192]
+            'cloth':                pre_cloth,              # [b, 3, 256, 192]
             'pose_map18':           pose_map18,             # [b, 18, 256, 192]
             'parse7_occ':           parse7_occ,             # [b, 7, 256, 192]
             'img_occ':              img_occ,                # [b, 3, 256, 192]
             'limbs':                limbs,                  # [b, 192, 32, 24]
-            'image':                image,                  # [b, 3, 256, 192]
             }          
 
         return result
@@ -266,7 +335,6 @@ if __name__ == "__main__":
         parse7_occ = inputs['parse7_occ'].cuda()                   # [b, 7, 256, 192]
         img_occ = inputs['img_occ'].cuda()                         # [b, 3, 256, 192]
         limbs = inputs['limbs'].cuda()                             # [b, 3, 256, 192]
-        image = inputs['image'].cuda()                             # [b, 3, 256, 192]
 
         cloth = cloth.cpu().numpy()
         pose_map18 = pose_map18.cpu().numpy()
