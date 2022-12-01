@@ -21,7 +21,7 @@ torchvision 0.10.0+cu111
 For the dataset, please refer to [VITON](https://github.com/xthan/VITON).
 
 ## Inference
-1. Download the checkpoints from [here](https://drive.google.com/file/d/1thkz_4uygbXbwqzj2IvQQovSNImSnveu/view?usp=share_link).
+1. Download the checkpoints from [here](https://drive.google.com/file/d/18KvqkWWbjI_GHkqF5HZes0RNB233DHPG/view?usp=share_link).
 
 2. Get [VITON dataset](https://github.com/xthan/VITON).
 
