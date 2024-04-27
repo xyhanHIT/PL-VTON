@@ -7,6 +7,9 @@ We propose a novel progressive limb-aware virtual try-on framework named PL-VTON
 
 [[Checkpoints]](https://drive.google.com/file/d/18KvqkWWbjI_GHkqF5HZes0RNB233DHPG/view?usp=share_link)
 
+## Notice
+IEEE Transactions on Multimedia 2023 paper by us (follow-up research): (https://github.com/xyhanHIT/PL-VTONv2)
+
 ## Pipeline
 ![image](https://github.com/xyhanHIT/PL-VTON/blob/master/images/pipeline.png)
 
@@ -47,6 +50,13 @@ If you use our code or models, please cite with:
   booktitle={Proceedings of the 30th ACM International Conference on Multimedia},
   pages={2420--2429},
   year={2022}
+}
+@article{zhang2023limb,
+  title={Limb-aware virtual try-on network with progressive clothing warping},
+  author={Zhang, Shengping and Han, Xiaoyu and Zhang, Weigang and Lan, Xiangyuan and Yao, Hongxun and Huang, Qingming},
+  journal={IEEE Transactions on Multimedia},
+  year={2023},
+  publisher={IEEE}
 }
 @inproceedings{han2018viton,
   title={VITON: An Image-Based Virtual Try-On Network},
