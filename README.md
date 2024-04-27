@@ -8,7 +8,7 @@ We propose a novel progressive limb-aware virtual try-on framework named PL-VTON
 [[Checkpoints]](https://drive.google.com/file/d/18KvqkWWbjI_GHkqF5HZes0RNB233DHPG/view?usp=share_link)
 
 ## Notice
-IEEE Transactions on Multimedia 2023 paper by us (follow-up research): (https://github.com/xyhanHIT/PL-VTONv2)
+IEEE Transactions on Multimedia 2023 paper by us (follow-up research): https://github.com/xyhanHIT/PL-VTONv2
 
 ## Pipeline
 ![image](https://github.com/xyhanHIT/PL-VTON/blob/master/images/pipeline.png)
