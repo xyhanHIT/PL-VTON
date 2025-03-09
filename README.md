@@ -7,10 +7,6 @@ We propose a novel progressive limb-aware virtual try-on framework named PL-VTON
 
 [[Checkpoints]](https://drive.google.com/file/d/18KvqkWWbjI_GHkqF5HZes0RNB233DHPG/view?usp=share_link)
 
-## Our Follow-up Researches
-1. **[[IEEE TMM 2023] PL-VTONv2](https://github.com/xyhanHIT/PL-VTONv2)** - Limb-Aware Virtual Try-On Network With Progressive Clothing Warping
-2. **[[ACM MM 2024] SCW-VTON](https://github.com/xyhanHIT/SCW-VTON)** - Shape-Guided Clothing Warping for Virtual Try-On
-
 ## Pipeline
 ![image](https://github.com/xyhanHIT/PL-VTON/blob/master/images/pipeline.png)
 
@@ -37,6 +33,11 @@ python test.py
 
 ## License
 The use of this code is restricted to non-commercial research and educational purposes.
+
+## Our Team's Researches
+- **[[ACM MM'22] PL-VTON](https://github.com/xyhanHIT/PL-VTON)** - Progressive Limb-Aware Virtual Try-On
+- **[[IEEE TMM'23] PL-VTONv2](https://github.com/aipixel/PL-VTONv2)** - Limb-Aware Virtual Try-On Network With Progressive Clothing Warping
+- **[[ACM MM'24] SCW-VTON](https://github.com/xyhanHIT/SCW-VTON)** - Shape-Guided Clothing Warping for Virtual Try-On
 
 ## Citation
 If you use our code or models, please cite with:
