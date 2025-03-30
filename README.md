@@ -3,7 +3,7 @@ Official code for ACM MM 2022 paper 'Progressive Limb-Aware Virtual Try-On'
 
 We propose a novel progressive limb-aware virtual try-on framework named PL-VTON. PL-VTON consists of Multi-attribute Clothing Warping (MCW), Human Parsing Estimator (HPE), and Limb-aware Texture Fusion (LTF), which produces stable clothing deformation and handles the texture retention well in the final try-on result.
 
-[[Paper]](https://dl.acm.org/doi/10.1145/3503161.3547999)
+[[Paper]](https://arxiv.org/abs/2503.12588)
 
 [[Checkpoints]](https://drive.google.com/file/d/18KvqkWWbjI_GHkqF5HZes0RNB233DHPG/view?usp=share_link)
 
