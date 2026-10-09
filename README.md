@@ -38,6 +38,7 @@ The use of this code is restricted to non-commercial research and educational pu
 - **[[ACM MM'22] PL-VTON](https://github.com/xyhanHIT/PL-VTON)** - Progressive Limb-Aware Virtual Try-On
 - **[[IEEE TMM'23] PL-VTONv2](https://github.com/aipixel/PL-VTONv2)** - Limb-Aware Virtual Try-On Network With Progressive Clothing Warping
 - **[[ACM MM'24] SCW-VTON](https://github.com/xyhanHIT/SCW-VTON)** - Shape-Guided Clothing Warping for Virtual Try-On
+- **[[CVPR'26 Highlight] MODA-VTON](https://arxiv.org/abs/2606.11148)** - MOFA-VTON: More Fashion Possibilities with Fine-Grained Adaptations in Virtual Try-On
 
 ## Citation
 If you use our code or models, please cite with:
